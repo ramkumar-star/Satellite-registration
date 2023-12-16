@@ -1,0 +1,13 @@
+1. Created Ansible Playbook consists of multiple tasks includes:
+
+  a. Checking if the server is already registered to the appropriate Satellite thorough rshm.conf inside system configuration files.
+  b. If the server is not registered to the latest Satellite, adding the host and IP entries to the system configuration hosts file to resolve the domain name as if the DNS server is not reached.
+  c. Checking if the katello installed in the server is latest and valid. If not, remove the katello and reinstall to the latest.
+  d. Cleaning the subscription manager and yum before registering the server to update the new entries.
+  e. Checking if the server is RHEL6/7/8 OS using ‘when’ statement to register the satellite thorough appropriate organization.
+  f. Updating the repository to get the correct repos from the satellite.
+  g. Providing the result of latest available kernel version which need to be patched to remediate vulnerabilities.
+
+2. Result of creating the Ansible playbook for registering the server to the Satellite decreased duration of the each server to 1-2 minutes instead of 5-10 minutes. 
+
+3. Human monitoring is not required while running the script as we can add the hostname to the inventory file and ran through script at a time.

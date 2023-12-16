@@ -1,0 +1,84 @@
+---
+  - name: Playbook
+    hosts: all
+    become: yes
+    tasks:
+
+#Checking if the server is already registered to the appropriate Satellite
+      - name: Checking Satellite hostname in rshm.log file
+        command: grep -i "hostname = SatXX.carnival.com" /etc/rhsm/rhsm.conf
+        register: checkmyconf
+        failed_when: "checkmyconf.rc == 0"
+        changed_when: false
+        check_mode: false
+
+#If the server is not registered to the latest Satellite, adding the host and IP entries to the system configuration hosts file
+      - name: Adding the host entry in /etc/hosts file
+        lineinfile:
+          path: "/etc/hosts"
+          line: XX.XX.XX.XX SatXX.carnival.com SatXX
+        when: checkmyconf.rc == 1
+        changed_when: checkmyconf.rc == 1
+        ignore_errors: true
+        check_mode: false
+
+#Checking if the katello installed in the server is latest and valid
+      - name: Checking katello files/packages
+        shell:
+          cmd: rpm -qa|grep -i katello
+        register: katello
+        failed_when: katello.rc == 1
+        ignore_errors: true
+        changed_when: false
+        check_mode: false
+
+#If not, remove the katello and reinstall to the latest
+      - name: Removing katello
+        shell:
+          cmd: yum remove $(rpm -qa|grep -i katello) -y
+        when: checkmyconf.rc == 1
+        changed_when: checkmyconf.rc == 1
+        ignore_errors: true
+        check_mode: false
+
+      - name: installing Katello-agent
+        shell:
+          cmd: rpm -Uvh http://SatXX.carnival.com/pub/katello-ca-consumer-latest.noarch.rpm
+        when: checkmyconf.rc == 1
+        changed_when: checkmyconf.rc == 1
+        check_mode: false
+
+#Cleaning the subscription manager
+      - name: cleaning RHSM
+        shell:
+          cmd: subscription-manager clean
+        when: checkmyconf.rc == 1
+        changed_when: checkmyconf.rc == 1
+        check_mode: false
+
+#Checking if the server is RHEL6/7/8 OS using ‘when’ statement to register the satellite thorough appropriate organization
+      - name: checking if OS version is RHEL 6 / Registering the server to satellite
+        shell:
+          cmd: subscription-manager register --org XXXX --activationkey key-6-prd --force
+        when: ansible_distribution_major_version == '6'
+        check_mode: false
+
+      - name: checking if OS version is RHEL 7 / Registering the server to satellite
+        shell:
+          cmd: subscription-manager register --org XXXX --activationkey key-7-prd --force
+        when: ansible_distribution_major_version == '7'
+        check_mode: false
+
+      - name: checking if OS version is RHEL 8 / Registering the server to satellite
+        shell:
+          cmd: subscription-manager register --org XXXX --activationkey key-8-prd --force
+        when: ansible_distribution_major_version == '8'
+        check_mode: false
+
+#Updating the repository to get the correct repos from the satellite
+      - shell: yum list kernel
+        register: kernel_v
+
+#Providing the result of latest available kernel version
+      - debug:
+          var: kernel_v.stdout_lines
